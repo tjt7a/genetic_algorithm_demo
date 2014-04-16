@@ -1,7 +1,20 @@
 import socket
 import sys
+import time
+import pickle
 
-HOST, PORT = "localhost", 9999
+
+class Collision_Message:
+    def __init__(self, timestamp, accel_vector):
+        self.timestamp = timestamp
+        self.accel_vector = accel_vector
+
+class Start_Message:
+    def __init__(self, timestamp, ip_address):
+        self.timestamp = timestamp
+        self.ip_address = ip_address
+
+HOST, PORT = "localhost", 8080
 #data = " ".join(sys.argv[1:])
 
 # Create a socket (SOCK_STREAM means a TCP socket)
@@ -20,7 +33,10 @@ print('Welcome to Client Application\nType a message to the server')
 user_in = raw_input('> ')
 while (user_in  != 'q'):
     try:
-        sock.sendall(user_in + "\n")
+
+        msg = Start_Message(int(time.time()), user_in)
+
+        sock.sendall(pickle.dumps(msg) + "\n")
         
         # Receive data from the server and shut down
         received = sock.recv(1024)

@@ -1,28 +1,45 @@
+'''
+Code originally written by Philip Asare; modified by Tommy Tracy II initialization
+
+'''
+
 #import socket
 import threading
 import SocketServer
+import pickle
 
 '''
-This script implements a basic socket server that you can extend to be your
-communication broker.
+This script implements a basic socket server
 
 '''
 
+class Collision_Message:
+	def __init__(self, timestamp, accel_vector):
+		self.timestamp = timestamp
+		self.accel_vector = accel_vector
+
+class Start_Message:
+	def __init__(self, timestamp, ip_address):
+		self.timestamp = timestamp
+		self.ip_address = ip_address
+
+class Image_Message:
+	def __init__(self, timestamp, image):
+		self.timestamp = timestamp
+		self.image = image
+
+class Image_Message:
+	
 class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
     '''
     The RequestHandler class for our server.
 
-    It is instantiated once per myRIO connection to the server.
-    
-    The functions to override (setup, handle, finish) are provided below.
-    
-    You will probably need other helper methods to implement your broker.
     '''
     
     def setup(self):
         '''
         This is called the first time the myRIO connects to the server.
-        You may want to add more initialization functions here.
+
         '''
         cur_thread = threading.current_thread()
         print('{}:{} connected'.format(*self.client_address))
@@ -46,6 +63,13 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             ### INSERT YOUR COMMUNICATION CODE HERE
             print "{} wrote:".format(self.client_address[0])
             print self.data
+
+            message = pickle.loads(self.data)
+
+            if type(message) is Collision_Message:
+            	print("Yay! This is a collision message!")
+
+            print(message)
             # just send back the same data, but upper-cased
             self.request.sendall(self.data.upper())
         
@@ -64,9 +88,9 @@ if __name__ == "__main__":
             on this port number through administrative tools
     '''
     
-    HOST, PORT = '', 9999 # list on port 9999 for all available interfaces
+    HOST, PORT = '', 8080 # list on port 8080 for all available interfaces
 
-    # Create the server, binding to all interfaces on port 9999
+    # Create the server, binding to all interfaces on port 8080
     server = ThreadedTCPServer((HOST, PORT), MyRIOConnectionHandler)
     
     '''
@@ -92,9 +116,5 @@ if __name__ == "__main__":
             pass
         except KeyboardInterrupt:
             server.shutdown()
+            #server.server_close()
                 
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    
-    #if KeyboardInterrupt:
-    #    server.shutdown()
