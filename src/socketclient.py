@@ -1,18 +1,9 @@
 import socket
 import sys
 import time
-import pickle
+import Image
+import io
 
-
-class Collision_Message:
-    def __init__(self, timestamp, accel_vector):
-        self.timestamp = timestamp
-        self.accel_vector = accel_vector
-
-class Start_Message:
-    def __init__(self, timestamp, ip_address):
-        self.timestamp = timestamp
-        self.ip_address = ip_address
 
 HOST, PORT = "localhost", 8080
 #data = " ".join(sys.argv[1:])
@@ -34,16 +25,31 @@ user_in = raw_input('> ')
 while (user_in  != 'q'):
     try:
 
-        msg = Start_Message(int(time.time()), user_in)
 
-        sock.sendall(pickle.dumps(msg) + "\n")
+        sock.sendall(user_in+ "\n")
         
         # Receive data from the server and shut down
-        received = sock.recv(1024)
+        received = bytearray(sock.recv(7168).split('S:')[1])
+
+        int_list = []
+
+        for b in received:
+            int_list.append(int(b))
+        print int_list
+
+        tuple_list = zip(int_list[0::3],int_list[1::3],int_list[2::3])
+
+        img = Image.new('RGB', (32,16))
+        img.putdata(tuple_list)
+        img.show()
+
+        print(len(received))
         
         # display received data
         print "Sent:     {}".format(user_in)
-        print "Received: {}".format(received)
+        print "Received: {}".format(str(received))
+
+        #img = Image.
     
         
         user_in = raw_input('> ')
