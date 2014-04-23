@@ -2,6 +2,7 @@
 
 '''
 Code originally written by Philip Asare; modified by Tommy Tracy II
+This is the Communication Broker for the Genetic Algorithm System
 
 '''
 
@@ -11,23 +12,40 @@ import SocketServer
 import sys
 import getopt
 import Image
+import random
 
-'''
-This script implements a basic socket server
-
-'''
 
 def usage():
 	print('usage: communication_broker.py -c <count> -i <target image filename> -f <configuration file>')
+
+def show_image(genes):
+	int_list = []
+	for b in genes:
+        	int_list.append(int(b))
+	
+	tuple_list = zip(int_list[0::3],int_list[1::3],int_list[2::3])
+
+	img = Image.new('RGB', (32,16))
+        img.putdata(tuple_list)
+        img.show()
+
+def generate_random_genes():
+
+    result = []
+    for i in range(1536):
+        result.append(random.randint(0,255))
+
+    return bytearray(result)
+
 
 
 class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
 
 	'''
-    	The RequestHandler class for our server.
+    The RequestHandler class for our server.
 
-    	'''
+   	'''
     
     	def setup(self):
 
@@ -57,6 +75,7 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
         
         	# Loop so that the connection is not closed
         	while True:
+
             		# self.request is the TCP socket connected to the client
             		if self.STILL_RECEIVING == True:
             			self.data = self.data + self.request.recv(1538 - len(self.data)).strip()
@@ -69,7 +88,7 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             
             		# dump contents
             		print("{} (STATE:{}, COLOR:{}) wrote:".format(self.client_address[0], self.STATE, self.COLOR))
-            		print("Received: ", self.data)
+            		#print("Received: ", self.data)
             		print("Size:  ", len(self.data))
 
             		# If server is in the DONE MODE; tell all robots and webcam to stop
@@ -84,7 +103,10 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             			else:
             				self.response = "D:" + server.RESULT #Can include the final image here
             			
+            			show_image(server.RESULT)
+
             			self.request.sendall(self.response)
+
             			break
 
             		# If the webcam contacts us, update locations
@@ -111,15 +133,8 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
             			int_list = []
 
-            			for b in server.RESULT:
-            				int_list.append(int(b))
-
-            			tuple_list = zip(int_list[0::3],int_list[1::3],int_list[2::3])
-
-            			img = Image.new('RGB', (32,16))
-            			img.putdata(tuple_list)
-            			img.show()
-
+            			print("Showing Result")
+            			show_image(server.RESULT)
 
             			break
 
@@ -138,6 +153,9 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             			self.request.sendall(self.response)
             			self.STATE = "DRIVE"
 
+            			print("RECEIVE a HELLO MESSAGE")
+            			print("Sending a START message")
+
             		elif self.STATE == "DRIVE":
 
             			# Robot Collided
@@ -146,14 +164,16 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             				print("Received a collision message")
             				# Check who it collided with
 
-            				if False:
+            				if random.random() < 0.5:
             					self.response = "O:" + server.target_image
             					print("Sending an obstacle message")
             					self.STATE = "DRIVE"
+            					print("Sending an O: message")
             				else:
             					self.response = "R:" + server.target_image
             					self.PARTNER = None #Set to a partner
             					self.STATE = "GEN_PROT"
+            					print("Sending an R: message")
 
             				self.request.sendall(self.response)
 
@@ -162,39 +182,37 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
             			if(self.data.find("G") != -1):
 
+
             				if len(self.data) < 1538:
             					self.STILL_RECEIVING = True
             					continue
             				else:
             					self.STILL_RECEIVING = False
 
-            				print("Got a G message of size", len(self.data))
+            				print("In GEN_PROT state")
+            				print("Got a G message of size: ", len(self.data))
 
 
             				self.GENES = bytearray(self.data.split('G:')[1])
 
-            				self.response = "G:" + server.target_image
+            				self.response = "G:" + generate_random_genes()
             				self.STATE = "FORWARD_GENES"
 
-            				int_list = []
+            				print("Showing contents of genes message")
+            				show_image(self.GENES)
 
-            				for b in self.GENES:
-            					int_list.append(int(b))
+            				print("Sending G: message with random image")
 
-            				tuple_list = zip(int_list[0::3],int_list[1::3],int_list[2::3])
-
-            				img = Image.new('RGB', (32,16))
-            				img.putdata(tuple_list)
-            				img.show()
-
+            				print("Showing contents of sent G message")
+            				show_image(self.response)
 
             				self.request.sendall(self.response)
 
             		elif self.STATE == "FORWARD_GENES":
 
-            			print("Received: ", self.data)
 
             			if(self.data.find("T") != -1):
+
 
             				if len(self.data) < 1538:
             					self.STILL_RECEIVING = True
@@ -202,16 +220,23 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             				else:
             					self.STILL_RECEIVING = False
 
-
-            				print("Data in T: ", self.data)
+            				print("In Forward_Genes state")
+            				print("Received Forward Genes")
 
             				self.PARTNER_GENES = bytearray(self.data.split('T:')[1])
 
-            				self.response = "T:"+server.target_image
+            				self.response = "T:"+generate_random_genes()
             				self.STATE = "DRIVE"
 
-            				self.request.sendall(self.response)
+            				print("Showing contents of T message")
 
+            				show_image(self.PARTNER_GENES)
+
+            				print("Sending random image as T response")
+            				print("Showing contents of sent T message")
+            				show_image(self.response)
+
+            				self.request.sendall(self.response)
 
 
 
@@ -232,17 +257,19 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 if __name__ == "__main__":
 
-	try:
-		opts, args  = getopt.getopt(sys.argv[1:], "hc:i:f:") # Arguments -c, -i, -f are required; -h is not
-	except getopt.GetoptError as err:
-    		usage()
-		sys.exit(2)
-	
-	input_file = None
-	configuration_file = None
-    	count = 0
 
-	for opt, arg in opts:
+    try:
+        opts, args  = getopt.getopt(sys.argv[1:], "hc:i:f:") # Arguments -c, -i, -f are required; -h is not
+    except getopt.GetoptError as err:
+    	usage()
+        sys.exit(2)
+
+    input_file = None
+    configuration_file = None
+
+    count = 0
+
+    for opt, arg in opts:
 		if opt == '-h':
 			usage()
 			sys.exit()
@@ -253,72 +280,67 @@ if __name__ == "__main__":
 		elif opt in ("-c"):
 			count = arg
 
-	if(input_file == None or count == 0 or configuration_file == None):
+    if(input_file == None or count == 0 or configuration_file == None):
 		usage()
 		sys.exit(2)
 
 
-
-	HOST, PORT = '', 8888 # list on port 8080 for all available interfaces
+    HOST, PORT = '', 8888 # list on port 8080 for all available interfaces
 
 	# Create the server, binding to all interfaces on port 8080
-	server = ThreadedTCPServer((HOST, PORT), MyRIOConnectionHandler)
+    server = ThreadedTCPServer((HOST, PORT), MyRIOConnectionHandler)
 
 
 	# A dictionary of connected myRIOS associating color and address
-	server.myRIOs = {}
+    server.myRIOs = {}
 
 	# Open the configuration file
-	try:
+    try:
 		configuration = open(configuration_file, 'r')
-	except:
+    except:
 		print("Cannot read configuration file")
 		exit(2)
 
 	# Parse configuration file
-	for config in configuration:
+    for config in configuration:
 		color = config.split(':')[0]
 		ip = config.split(':')[1].strip()
-		server.myRIOs[color] = ip
+		server.myRIOs[color] = {}
+		server.myRIOs[color]["ip"] = ip
 
-	print(server.myRIOs)
+    print(server.myRIOs)
 
     
-	'''
-	Add any variables you want to pass to the MyRIOConnectionHandler below
-	as server.variable. You can initialize the variables here if necessary.
-	'''
-    
-    	server.DONE = False
-	server.partnersGenes = {}
+    server.DONE = False
+    server.partnersGenes = {}
 
-	server.img = Image.open(input_file).convert('RGB').resize((32,16))
-	server.img.show()
+    server.img = Image.open(input_file).convert('RGB').resize((32,16))
+    server.img.show()
 
 	#[element for tupl in tupleOfTuples for element in tupl]
-	int_list = [pix for tupl in list(server.img.getdata()) for pix in tupl]
-	server.target_image = bytearray(int_list)
+    int_list = [pix for tupl in list(server.img.getdata()) for pix in tupl]
+    server.target_image = bytearray(int_list)
 
 	# This is the final image
-	server.RESULT = None
+    server.RESULT = None
 
 	# Print target image size in bytes
-	print("Target image is size: ",len(server.target_image))
+    print("Target image is size: ",len(server.target_image))
     
 	### INSERT OTHER VARIABLES HERE ###
     
 	# Start the server thread
-	server_thread = threading.Thread(target=server.serve_forever)
-    
-	server_thread.daemon = True
-	server_thread.start()
-	print "Server loop running in thread:", server_thread.name
+    server_thread = threading.Thread(target=server.serve_forever)
+
+    server_thread.daemon = True
+    server_thread.start()
+    print "Server loop running in thread:", server_thread.name
 
 	# Loop until Ctrl+C is pressed
-	while True:
-		try:
-			pass
-		except KeyboardInterrupt:
-			server.shutdown()
+    while True:
+        try:
+            pass
+        except KeyboardInterrupt:
+            server.shutdown()
 		#server.server_close()
                 
