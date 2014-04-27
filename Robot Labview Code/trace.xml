@@ -1,0 +1,303 @@
+<?xml version='1.0' standalone='yes' ?>
+<LVData xmlns="http://www.ni.com/LVData">
+<Version>13.0f2</Version>
+<Array>
+<Name></Name>
+<Dimsize>0</Dimsize>
+<Cluster>
+<Name>Trace Element</Name>
+<NumElts>5</NumElts>
+<Array>
+<Name>Position (m)</Name>
+<Dimsize>0</Dimsize>
+<SGL>
+<Name>Numeric Control</Name>
+<Val></Val>
+</SGL>
+</Array>
+<Array>
+<Name>Rotation Matrix (rad)</Name>
+<Dimsize>0</Dimsize>
+<Dimsize>0</Dimsize>
+<SGL>
+<Name>Numeric Control</Name>
+<Val></Val>
+</SGL>
+</Array>
+<SGL>
+<Name>Simulation Time (s)</Name>
+<Val></Val>
+</SGL>
+<Cluster>
+<Name>Statechart Inputs</Name>
+<NumElts>6</NumElts>
+<I32>
+<Name>net distance (mm)</Name>
+<Val></Val>
+</I32>
+<I32>
+<Name>net angle (deg)</Name>
+<Val></Val>
+</I32>
+<I16>
+<Name>Max Wheel Speed (mm/s)</Name>
+<Val></Val>
+</I16>
+<Cluster>
+<Name>accelerometer</Name>
+<NumElts>3</NumElts>
+<DBL>
+<Name>x axis (g)</Name>
+<Val></Val>
+</DBL>
+<DBL>
+<Name>y axis (g)</Name>
+<Val></Val>
+</DBL>
+<DBL>
+<Name>z axis (g)</Name>
+<Val></Val>
+</DBL>
+</Cluster>
+<Cluster>
+<Name>iRobot Sensors</Name>
+<NumElts>34</NumElts>
+<Cluster>
+<Name>Bumps + Wheel Drops</Name>
+<NumElts>5</NumElts>
+<Boolean>
+<Name>Wheeldrop Caster</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Wheeldrop Left</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Wheeldrop Right</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Bump Left</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Bump Right</Name>
+<Val></Val>
+</Boolean>
+</Cluster>
+<Boolean>
+<Name>Wall</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Cliff Left</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Cliff Front Left</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Cliff Front Right</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Cliff Right</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Virtual Wall</Name>
+<Val></Val>
+</Boolean>
+<Cluster>
+<Name>Low-Side Driver + Wheel Overcurrent</Name>
+<NumElts>5</NumElts>
+<Boolean>
+<Name>Low-Side Driver 0</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Low-Side Driver 1</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Low-Side Driver 2</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Left Wheel</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Right Wheel</Name>
+<Val></Val>
+</Boolean>
+</Cluster>
+<U8>
+<Name>Infrared</Name>
+<Val></Val>
+</U8>
+<Cluster>
+<Name>Buttons</Name>
+<NumElts>2</NumElts>
+<Boolean>
+<Name>Advance</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Play</Name>
+<Val></Val>
+</Boolean>
+</Cluster>
+<I32>
+<Name>Distance (mm)</Name>
+<Val></Val>
+</I32>
+<I32>
+<Name>Angle (deg)</Name>
+<Val></Val>
+</I32>
+<EW>
+<Name>Charging State</Name>
+<Choice>Not Charging</Choice>
+<Choice>Reconditioning Charging</Choice>
+<Choice>Full Charging</Choice>
+<Choice>Trickle Charging</Choice>
+<Choice>Waiting</Choice>
+<Choice>Charging Fault Condition</Choice>
+<Val></Val>
+</EW>
+<U16>
+<Name>Voltage (mV)</Name>
+<Val></Val>
+</U16>
+<I16>
+<Name>Current (mA)</Name>
+<Val></Val>
+</I16>
+<I8>
+<Name>Battery Temperature (deg C)</Name>
+<Val></Val>
+</I8>
+<U16>
+<Name>Battery Charge (mAh)</Name>
+<Val></Val>
+</U16>
+<U16>
+<Name>Battery Capacity (mAh)</Name>
+<Val></Val>
+</U16>
+<U16>
+<Name>Wall Signal (0-4095)</Name>
+<Val></Val>
+</U16>
+<U16>
+<Name>Cliff Left Signal (0-4095)</Name>
+<Val></Val>
+</U16>
+<U16>
+<Name>Cliff Front Left Signal (0-4095)</Name>
+<Val></Val>
+</U16>
+<U16>
+<Name>Cliff Front Right Signal (0-4095)</Name>
+<Val></Val>
+</U16>
+<U16>
+<Name>Cliff Right Signal (0-4095)</Name>
+<Val></Val>
+</U16>
+<Cluster>
+<Name>Cargo Bay Digital Inputs</Name>
+<NumElts>5</NumElts>
+<Boolean>
+<Name>Digital Input 0</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Digital Input 1</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Digital Input 2</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Digital Input 3</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Device Detect</Name>
+<Val></Val>
+</Boolean>
+</Cluster>
+<U16>
+<Name>Cargo Bay Analog Signal (0-1023)</Name>
+<Val></Val>
+</U16>
+<Cluster>
+<Name>Charging Sources Available</Name>
+<NumElts>2</NumElts>
+<Boolean>
+<Name>Internal Charger</Name>
+<Val></Val>
+</Boolean>
+<Boolean>
+<Name>Home Base</Name>
+<Val></Val>
+</Boolean>
+</Cluster>
+<EW>
+<Name>OI Mode</Name>
+<Choice>Off</Choice>
+<Choice>Passive</Choice>
+<Choice>Safe</Choice>
+<Choice>Full</Choice>
+<Val></Val>
+</EW>
+<U8>
+<Name>Song Number</Name>
+<Val></Val>
+</U8>
+<Boolean>
+<Name>Song Playing</Name>
+<Val></Val>
+</Boolean>
+<U8>
+<Name>Number of Stream Packets</Name>
+<Val></Val>
+</U8>
+<I16>
+<Name>Requested Velocity (mm/s)</Name>
+<Val></Val>
+</I16>
+<I16>
+<Name>Requested Radius (mm)</Name>
+<Val></Val>
+</I16>
+<I16>
+<Name>Requested Right Wheel Velocity (mm/s)</Name>
+<Val></Val>
+</I16>
+<I16>
+<Name>Requested Left Wheel Velocity (mm/s)</Name>
+<Val></Val>
+</I16>
+</Cluster>
+<Boolean>
+<Name>Is Simulator?</Name>
+<Val></Val>
+</Boolean>
+</Cluster>
+<Array>
+<Name>Active States</Name>
+<Dimsize>0</Dimsize>
+<String>
+<Name>Active State</Name>
+<Val></Val>
+</String>
+</Array>
+</Cluster>
+</Array>
+</LVData>
