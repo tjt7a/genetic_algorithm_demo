@@ -17,7 +17,7 @@ import math
 
 # Debug flags
 DEBUG = True # When enabled, we DEBUG with a single robot, and assume either OBSTACLE or ROBOT for every collision
-ROBOT_COLLISION = False # True for Robot collision; False for Obstacle collision
+ROBOT_COLLISION = True # True for Robot collision; False for Obstacle collision
 
 # Threshold flag
 DISTANCE_THRESHOLD = 10 # Threshold distance for mating robots
@@ -89,6 +89,9 @@ def find_potential_partners(my_color):
 
 # Return TRUE if the two robots are considered close enough to be mating
 def close_enough(color_1, color_2):
+
+        if DEBUG:
+                return True
 
         # Grab the current location of both robots
         color_1_location = server.myRIOs[color1]["location"]
@@ -267,9 +270,9 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
                                 # Wait for server.COUNT robots to connect to the Broker
                                 server.COUNT -= 1
 
-                                if not DEBUG:
-                                        while server.COUNT > 0:
-                                                pass
+                                #if not DEBUG:
+                                while server.COUNT > 0:
+                                        pass
 
             			self.response = "S:"+server.target_image # Send target image
 
@@ -291,28 +294,28 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             				print("{} Robot {}: Received a collision message".format(print_tabs(self.thread_index), self.COLOR))
             				
 
-                                        if not DEBUG:
-                                                time.sleep(0.5) # Wait half a second; both messages should have been received
+                                        #if not DEBUG:
+                                        time.sleep(0.5) # Wait half a second; both messages should have been received
 
-                                                potential_partners = find_potential_partners(self.COLOR)
+                                        potential_partners = find_potential_partners(self.COLOR)
 
-                                                # Check which robots are close to this robot, then check if colliding; don't do this
-                                                for color in server.myRIOs:
-                                                        if color != self.COLOR and server.myRIOs[color]["colliding"]:
-                                                                self.PARTNER = color
-                                                                robot_collision = True
+                                        # Check which robots are close to this robot, then check if colliding; don't do this
+                                        for color in potential_partners:
+                                                if server.myRIOs[color]["colliding"]:
+                                                        self.PARTNER = color
+                                                        robot_collision = True
+                                                        print("{}Robot {} partnered with Robot {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
 
-                                                if self.PARTNER == None:
-                                                        robot_collision = False
+                                        if self.PARTNER == None:
+                                                robot_collision = False
 
                                         # Check who it collided with
             				if not robot_collision:
-            					self.response = "O:" + server.target_image
+            					self.response = "O:" + server.target_image # O message with target image (not used)
             					print("{}Sending an Obstacle Message to {}".format(print_tabs(self.thread_index), self.COLOR))
             					self.STATE = "DRIVE"
             				else:
-            					self.response = "R:" + generate_random_genes()
-            					self.PARTNER = None # Set to a partner
+            					self.response = "R:" + server.target_image # R message with target image (not used)
             					print("{}Sending a Robot Message to {}".format(print_tabs(self.thread_index), self.COLOR))
                                                 self.STATE = "GEN_PROT"
 
@@ -337,25 +340,22 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
                                         server.myRIOs[self.COLOR]["genes"] = bytearray(self.data.split('G:')[1])
                                         server.myRIOs[self.COLOR]["genes_ready"] = True
 
-                                        if not DEBUG:
-                                                while not server.myRIOs[self.PARTNER]["genes_ready"]:
-                                                        pass
+                                        #if not DEBUG:
 
-            				        self.GENES = server.myRIOs[self.PARTNER]["genes"]
+                                        while not server.myRIOs[self.PARTNER]["genes_ready"]:
+                                                pass
 
-                                                print("{}Forwarding Genes from {} to {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
-            				else:
-                                                self.GENES= generate_random_genes()
+            				self.GENES = server.myRIOs[self.PARTNER]["genes"]
+
+                                        print("{}Forwarding Genes from {} to {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
+            				#else:
+                                        #        self.GENES= generate_random_genes()
                                         
                                         self.response = "G:" + self.GENES
                                         self.STATE = "FORWARD_GENES"
 
             				print("{}Showing contents of genes message".format(print_tabs(self.thread_index)))
             				show_image(self.GENES)
-
-            				print("{}Showing contents of sent G message".format(print_tabs(self.thread_index)))
-
-            				show_image(self.response)
 
             				self.request.sendall(self.response)
 
@@ -375,22 +375,14 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
                                         server.myRIOs[self.COLOR]["second_best_genes_ready"] = True
 
 
-                                        if not DEBUG:
-                                                while not server.myRIOs[self.PARTNER]["second_best_genes_ready"]:
-                                                        pass
+                                        while not server.myRIOs[self.PARTNER]["second_best_genes_ready"]:
+                                                pass
 
-            				        self.response = "T:"+server.myRIOs[self.PARTNER]["second_best_genes"]
-                                        else:
-                                                self.response = "T:" + generate_random_genes()
-
+            				self.response = "T:"+server.myRIOs[self.PARTNER]["second_best_genes"]
 
             				self.STATE = "DRIVE"
 
-                                        if not DEBUG:
-            				        print("{}Forwarding Second best child message from {} to {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
-
-            				print("Showing contents of sent T message")
-            				show_image(self.response)
+            				print("{}Forwarding Second best child message from {} to {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
 
             				self.request.sendall(self.response)
 

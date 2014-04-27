@@ -15,7 +15,6 @@ def generate_random_genes():
     return bytearray(result)
 
 
-
 HOST, PORT = "localhost", 8888
 #data = " ".join(sys.argv[1:])
 
