@@ -88,17 +88,20 @@ def print_tabs(index):
 def find_potential_partners(my_color):
 
         partners = []
+        result = []
         for color in server.myRIOs:
                 if color != my_color and color != "webcam":
-                        if close_enough(my_color, color):
-                                partners.append(color)
+                        partners.append((color, distance_between(my_color, color)))
 
-        return partners
+        partners = sorted(partners, key=lambda partner: partner[1])
+
+        for partner in partners:
+                result.append(partner[0])
+
+        return result
 
 # Return TRUE if the two robots are considered close enough to be mating
-def close_enough(color_1, color_2):
-        if DEBUG:
-                return True
+def distance_between(color_1, color_2):
 
         #print("Color_1: {} \t Color_2: {}".format(color_1, color_2))
 
@@ -118,13 +121,15 @@ def close_enough(color_1, color_2):
         # Calculate distance between robots
         distance = math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
-        print("\t\t\t\t\t\t\t\t\t\t Distance between {} and {}: {}".format(color_1, color_2, distance))
+        #print("\t\t\t\t\t\t\t\t\t\t Distance between {} and {}: {}".format(color_1, color_2, distance))
+
+        return distance
 
         # Determine if the robots are close enough
-        if distance < DISTANCE_THRESHOLD:
-                return True
-        else:
-                return False
+        #if distance < DISTANCE_THRESHOLD:
+        #        return True
+        #else:
+        #        return False
 
 #
 # -------------------- -------------- --------------------
@@ -253,7 +258,7 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
                                 if color in server.myRIOs:
 				    server.myRIOs[color]["location"] = location # x and y are separated by commas
-                                
+                                 
                                 if DEBUG:
                                         print("{} Webcam: Updating location:{}".format(print_tabs(self.thread_index), self.data))
 
@@ -336,14 +341,13 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             				print("{} Received a collision message from Robot {}".format(print_tabs(self.thread_index), self.COLOR))
                                         print("{} There are {} potential partners".format(print_tabs(self.thread_index), len(potential_partners)))
 
-                                        self.PARTNER = None
+                                        self.PARTNER = None # No partner assigned
 
-                                        time.sleep(1) # Wait for a whole second, and see who's available
-
-                                        # We've been claimed!
+                                        time.sleep(1) # Wait for a whole second, and see who's available (has collided in the meantime)
 
                                         server.lock.acquire()
 
+                                        # We've been claimed!
                                         if server.myRIOs[self.COLOR]["partner"] != None:
                                                 self.PARTNER = server.myRIOs[self.COLOR]["partner"]
                                                 print("{}Robot {} partnered with Robot {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
@@ -460,14 +464,14 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
                                         server.myRIOs[self.COLOR]["second_best_genes_received"] = True
 
-                                        print("{}Set 2nd best genes recvd".format(print_tabs(self.thread_index)))
+                                        print("{}{}Set 2nd best genes recvd".format(print_tabs(self.thread_index), self.COLOR))
 
                                         while not server.myRIOs[self.PARTNER]["second_best_genes_received"]:
                                                 pass
 
                                         server.myRIOs[self.COLOR]["second_best_genes_ready"] = False
 
-                                        print("{}Set 2nd best genes ready to false".format(print_tabs(self.thread_index)))
+                                        print("{}{}Set 2nd best genes ready to false".format(print_tabs(self.thread_index), self.COLOR))
 
                         # ---------- ---------- ---------- ----------
 
