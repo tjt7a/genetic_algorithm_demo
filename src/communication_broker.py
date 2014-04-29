@@ -3,7 +3,7 @@
 '''
 Code originally written by Philip Asare; modified by Tommy Tracy II
 This is the Communication Broker for the Genetic Algorithm System Demo
-
+28 April 2014
 '''
 
 import threading
@@ -15,12 +15,16 @@ import random
 import time
 import math
 
-# Debug flags
-DEBUG = True # When enabled, we DEBUG with a single robot, and assume either OBSTACLE or ROBOT for every collision
-ROBOT_COLLISION = True # True for Robot collision; False for Obstacle collision
 
-# Threshold flag
-DISTANCE_THRESHOLD = 10 # Threshold distance for mating robots
+# ---------- DEBUG Flags ----------
+
+DEBUG = False # When enabled, we DEBUG with a single robot, and assume either OBSTACLE or ROBOT for every collision
+ROBOT_COLLISION = True # True for Robot collision; False for Obstacle collision
+SINGLE_BOT = False # Used if debugging a single robot := don't wait to start, don't send robot collision messages
+
+DISTANCE_THRESHOLD = 100 # Threshold distance for mating robots
+
+# -------------------- -------------- --------------------
 
 #
 # -------------------- Useful functions --------------------
@@ -53,7 +57,11 @@ def print_data_dictionary():
 
     print("Contents of the Data Dictionary \n ----------\n")
     for color in server.myRIOs:
-        print("{}:\t{}".format(color, server.myRIOs[color]))
+        string = ""
+        for trait in server.myRIOs[color]:
+                if trait != "genes" and trait != "second_best_genes": # We don't want to show the gene bytes
+                        string += "{}:{}\t".format(trait, server.myRIOs[color][trait])
+        print(string)
     print("\n ---------- \n")
 
 
@@ -72,16 +80,16 @@ def print_tabs(index):
         tabs = ""
         # Print tabs to distinguish between bots, and then the index of the thread
         for i in range(index):
-                tabs.join('\t')
+                tabs += '\t'
 
         return tabs
 
-# Find robots that are close
+# Find robots that are within the DISTANCE_THRESHOLD of this robot
 def find_potential_partners(my_color):
 
         partners = []
         for color in server.myRIOs:
-                if color != my_color:
+                if color != my_color and color != "webcam":
                         if close_enough(my_color, color):
                                 partners.append(color)
 
@@ -89,23 +97,28 @@ def find_potential_partners(my_color):
 
 # Return TRUE if the two robots are considered close enough to be mating
 def close_enough(color_1, color_2):
-
         if DEBUG:
                 return True
 
+        #print("Color_1: {} \t Color_2: {}".format(color_1, color_2))
+
         # Grab the current location of both robots
-        color_1_location = server.myRIOs[color1]["location"]
-        color_2_location = server.myRIOs[color2]["location"]
+        color_1_location = server.myRIOs[color_1]["location"]
+        color_2_location = server.myRIOs[color_2]["location"]
+
+        #print("Robot 1 location: {} \t Robot 2 location: {}".format(color_1_location, color_2_location))
 
         # Split locations into x and y components on the comma
-        x1 = color_1_location.split(",")[0]
-        y1 = color_1_location.split(",")[1]
+        x1 = int(color_1_location.split(",")[0])
+        y1 = int(color_1_location.split(",")[1])
 
-        x2 = color_2_location.split(",")[0]
-        y2 = color_2_location.split(",")[1]
+        x2 = int(color_2_location.split(",")[0])
+        y2 = int(color_2_location.split(",")[1])
 
         # Calculate distance between robots
         distance = math.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+        print("\t\t\t\t\t\t\t\t\t\t Distance between {} and {}: {}".format(color_1, color_2, distance))
 
         # Determine if the robots are close enough
         if distance < DISTANCE_THRESHOLD:
@@ -150,25 +163,29 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             	for color in server.myRIOs:
                 	if self.client_address[0] == server.myRIOs[color]["ip"]:
                     		self.COLOR = color
-				print("{}Color Set to: {}".format(print_tabs(self.thread_index), self.COLOR))
+				print("{}Thread's Color Set to: {}".format(print_tabs(self.thread_index), self.COLOR))
                                 break
 
-            	if self.COLOR == None:
+            	if self.COLOR == None and self.COLOR != "webcam":
                 	print("{}**ILLEGAL ROBOT CONNECTING! UNKNOWN COLOR**".format(print_tabs(self.thread_index)))
                         exit()
 
-                # Set data dictionary to initial values, and print the contents
-                server.myRIOs[self.COLOR]["colliding"] = False
-                server.myRIOs[self.COLOR]["genes"] = None
-                server.myRIOs[self.COLOR]["genes_ready"] = False
-                server.myRIOs[self.COLOR]["second_best_genes"] = None
-                server.myRIOs[self.COLOR]["second_best_genes_ready"] = False
+                else:
+                        if self.COLOR != "webcam":
+                                # Set data dictionary to initial values, and print the contents
+                                server.myRIOs[self.COLOR]["colliding"] = False # Is robot in collision?
+                                server.myRIOs[self.COLOR]["genes"] = None # What are the robot's genes?
+                                server.myRIOs[self.COLOR]["genes_ready"] = False # Are the robot's genes ready to forward?
+                                server.myRIOs[self.COLOR]["second_best_genes"] = None # What is the robot's second best child's genes?
+                                server.myRIOs[self.COLOR]["second_best_genes_ready"] = False # Are those ready to be forwarded?
+                                server.myRIOs[self.COLOR]["second_best_genes_received"] = False # Have the 2nd best genes been received?
+                                server.myRIOs[self.COLOR]["partner"] = None
 
                 if DEBUG:
                         print_data_dictionary()
 
-                self.PARTNER = None
-        	self.STILL_RECEIVING = False # If I don't receive the complete payload; need to fill up the rest of the buffer
+                self.PARTNER = None # Single robot is sad
+        	self.STILL_RECEIVING = False # If I don't receive the complete payload; need to fill up the rest of the buffer (TCP hack)
 
 
     	def handle(self):
@@ -182,25 +199,35 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
         	# Loop so that the connection is not closed
         	while True:
 
-                        # If all data hasn't arrived yet, fill self.data with next TCP packet
+                        # ---------- Special Conditions ----------
+
+
+                        # If all data hasn't arrived yet, fill self.data with next TCP packet (TCP hack)
             		if self.STILL_RECEIVING == True:
             			self.data = self.data + self.request.recv(1538 - len(self.data))#.strip()
             		else:
             			self.data = self.request.recv(1538)#.strip()
-            
-            		# check if the client closed the socket; if so, we're done with that connection
-            		if len(self.data) == 0: 
-            			break
+
+                        # check if the client closed the socket; if so, we're done with that connection
+                        if len(self.data) == 0: 
+                                print("{}{} is closing connection".format(print_tabs(self.thread_index), self.COLOR))
+                                break
+
 
                         # Only display data if self.data is complete
                         if not self.STILL_RECEIVING:
-                                print("{}{}(Thread={}) (STATE:{}, COLOR:{}) wrote:".format(print_tabs(self.thread_index), self.client_address[0], self.thread_index, self.STATE, self.COLOR))
-                                print("{}Received({}): {}".format(print_tabs(self.thread_index), len(self.data), self.data.split(':')[0]))
+                                if self.COLOR != "webcam": # We don't want to see what the webcam is sending
+                                        print("{}{}(Thread={}) (STATE:{}, COLOR:{}) wrote:".format(print_tabs(self.thread_index), self.client_address[0], self.thread_index, self.STATE, self.COLOR))
+                                        print("{}Received({}): {}".format(print_tabs(self.thread_index), len(self.data), self.data.split(':')[0]))
 
+
+                        # ---------- Special Conditions ----------
+
+                        # ---------- If Server in DONE state ----------
             		# If server is in the DONE MODE; tell all robots and webcam to stop
             		if server.DONE == True and DEBUG == False:
 
-            			print("{}We're done; return the result".format(print_tabs(self.thread_index)))
+            			print("{}The Server is done; return the result and stop".format(print_tabs(self.thread_index)))
 
             			# It's the webcam; let him know he's done
             			if self.data.startswith("W"):
@@ -210,11 +237,12 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             			else:
             				self.response = "D:" + server.RESULT # Can include the final image here
             			
-            			show_image(server.RESULT) # Display the result
-
             			self.request.sendall(self.response) # Send the DONE message with result
-
             			break
+
+                        # ---------- ---------- ---------- ----------
+
+                        # ---------- If webcam is sending a message ----------
 
             		# If the webcam contacts us, update locations
             		elif self.data.startswith("W"):
@@ -222,13 +250,19 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             			# Do stuffs; update dictionary
                                 color = (self.data.split("W:")[1]).split(":")[0]
                                 location = (self.data.split("W:")[1]).split(":")[1]
-				server.myRIOs[color]["location"] = location # x and y are separated by commas
 
-                                # Print update
+                                if color in server.myRIOs:
+				    server.myRIOs[color]["location"] = location # x and y are separated by commas
+                                
                                 if DEBUG:
-                                        print("{}Webcam: Updating location of {} robot to {}".format(print_tabs(self.thread_index), color, location))
+                                        print("{} Webcam: Updating location:{}".format(print_tabs(self.thread_index), self.data))
 
             			self.request.sendall("Thanks")
+
+                        # ---------- ---------- ---------- ----------
+
+
+                        # ---------- If in any state, and we get a DONE message ----------
 
             		# Check if we receive a DONE message; let everyone know it's DONE time!!
             		elif self.data.startswith("D"):
@@ -242,8 +276,7 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             			else:
             				self.STILL_RECEIVING = False
 
-            			print("{}Received a D for Done; setting RESULT".format(print_tabs(self.thread_index)))
-                                #print("{}Received this many bytes: {}".format(print_tabs(self.thread_index), len(self.data)))
+            			print("{}Received a D for Done from {} robot; setting RESULT".format(print_tabs(self.thread_index), self.COLOR))
             			
                                 server.RESULT = bytearray(self.data.split("D:")[1]) # Grab the result
             			
@@ -255,6 +288,11 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
                                         show_image(server.RESULT)
 
             			break
+
+                        # ---------- ---------- ---------- ----------
+
+
+                        # ---------- If in the INIT state ----------
 
             		# If in the INIT stage ...
             		elif self.STATE == "INIT":
@@ -270,44 +308,63 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
                                 # Wait for server.COUNT robots to connect to the Broker
                                 server.COUNT -= 1
 
-                                #if not DEBUG:
-                                while server.COUNT > 0:
-                                        pass
+                                print("{} Server Waiting on {} robots...".format(print_tabs(self.thread_index), server.COUNT))
+
+                                if not SINGLE_BOT:
+                                        while server.COUNT > 0:
+                                                pass
 
             			self.response = "S:"+server.target_image # Send target image
 
-                                print("{} Sending START to {}".format(print_tabs(self.thread_index), self.COLOR))
+                                print("{} Sending START to {} robot".format(print_tabs(self.thread_index), self.COLOR))
 
             			self.request.sendall(self.response)
             			self.STATE = "DRIVE"
 
+                        # ---------- ---------- ---------- ----------
 
 
+                        # ---------- If in the DRIVE state ----------
             		elif self.STATE == "DRIVE":
 
             			# Robot Collided
             			if(self.data.find("C") != -1):
 
-                                        robot_collision = ROBOT_COLLISION
-                                        server.myRIOs[self.COLOR]["colliding"] = robot_collision
+                                        server.myRIOs[self.COLOR]["colliding"] = True
+                                        potential_partners = find_potential_partners(self.COLOR) # Return a list of potential partners (based on GVS)
 
-            				print("{} Robot {}: Received a collision message".format(print_tabs(self.thread_index), self.COLOR))
-            				
+            				print("{} Received a collision message from Robot {}".format(print_tabs(self.thread_index), self.COLOR))
+                                        print("{} There are {} potential partners".format(print_tabs(self.thread_index), len(potential_partners)))
 
-                                        #if not DEBUG:
-                                        time.sleep(0.5) # Wait half a second; both messages should have been received
+                                        self.PARTNER = None
 
-                                        potential_partners = find_potential_partners(self.COLOR)
+                                        time.sleep(0.5) # Wait for a quarter second, and see who's available
 
-                                        # Check which robots are close to this robot, then check if colliding; don't do this
-                                        for color in potential_partners:
-                                                if server.myRIOs[color]["colliding"]:
-                                                        self.PARTNER = color
-                                                        robot_collision = True
-                                                        print("{}Robot {} partnered with Robot {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
+                                        # We've been claimed!
+                                        if server.myRIOs[self.COLOR]["partner"] != None:
+                                                self.PARTNER = server.myRIOs[self.COLOR]["partner"]
+                                                print("{}Robot {} partnered with Robot {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
+
+                                        else:
+                                                for color in potential_partners:
+                                                        # If someone set my partner to themselves... ive been claimed OR this dude's colliding
+                                                        if server.myRIOs[color]["colliding"]:
+                                                                server.lock.acquire()
+                                                                server.myRIOs[color]["colliding"] = False # Set that robot to not be colliding; we have claimed it as our partner
+                                                                server.myRIOs[self.COLOR]["colliding"] = False # both of us are not available anymore
+                                                                server.myRIOs[color]["partner"] = self.COLOR
+                                                                self.PARTNER = color
+                                                                server.lock.release()
+                                                                print("{}Robot {} partnered with Robot {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
+                                                                break # We're partnered!!!!
 
                                         if self.PARTNER == None:
+                                                #print("{}Robot {} has no partner".format(print_tabs(self.thread_index), self.COLOR))
                                                 robot_collision = False
+                                                server.myRIOs[self.COLOR]["colliding"] = False
+                                        else:
+                                                #print("{}Robot {} has partner {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
+                                                robot_collision = True
 
                                         # Check who it collided with
             				if not robot_collision:
@@ -318,10 +375,17 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             					self.response = "R:" + server.target_image # R message with target image (not used)
             					print("{}Sending a Robot Message to {}".format(print_tabs(self.thread_index), self.COLOR))
                                                 self.STATE = "GEN_PROT"
-
+                                                server.myRIOs[self.COLOR]["partner"] = None
 
             				self.request.sendall(self.response)
 
+                                else:
+                                        print("{} ERROR: Received incorrect message from robot {}".format(print_tabs(self.thread_index), self.COLOR))
+
+                        # ---------- ---------- ---------- ----------
+
+
+                        # ---------- If in the GEN_PROT state ----------
 
             		elif self.STATE == "GEN_PROT":
 
@@ -336,11 +400,8 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
             				print("{}{} sent a G message".format(print_tabs(self.thread_index), self.COLOR))
 
-
                                         server.myRIOs[self.COLOR]["genes"] = bytearray(self.data.split('G:')[1])
                                         server.myRIOs[self.COLOR]["genes_ready"] = True
-
-                                        #if not DEBUG:
 
                                         while not server.myRIOs[self.PARTNER]["genes_ready"]:
                                                 pass
@@ -348,8 +409,6 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             				self.GENES = server.myRIOs[self.PARTNER]["genes"]
 
                                         print("{}Forwarding Genes from {} to {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
-            				#else:
-                                        #        self.GENES= generate_random_genes()
                                         
                                         self.response = "G:" + self.GENES
                                         self.STATE = "FORWARD_GENES"
@@ -358,22 +417,29 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
             				show_image(self.GENES)
 
             				self.request.sendall(self.response)
+                                        print("{}Forwarded genes".format(print_tabs(self.thread_index)))
+
+                        # ---------- ---------- ---------- ----------
 
 
+                        # ---------- If in the FORWARD_GENES state ----------
             		elif self.STATE == "FORWARD_GENES":
 
             			if(self.data.find("T") != -1):
 
             				if len(self.data) < 1538:
             					self.STILL_RECEIVING = True
+                                                print("{}Didn't get the whole gene message from robot {}".format(print_tabs(self.thread_index), self.COLOR))
             					continue
             				else:
             					self.STILL_RECEIVING = False
 
                                         server.myRIOs[self.COLOR]["genes_ready"] = False
             				server.myRIOs[self.COLOR]["second_best_genes"] = bytearray(self.data.split('T:')[1])
+                                        server.myRIOs[self.COLOR]["second_best_genes_received"] = False
                                         server.myRIOs[self.COLOR]["second_best_genes_ready"] = True
 
+                                        print("{} Robot {} is waiting on second best genes from other".format(print_tabs(self.thread_index), self.COLOR))
 
                                         while not server.myRIOs[self.PARTNER]["second_best_genes_ready"]:
                                                 pass
@@ -386,8 +452,21 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
             				self.request.sendall(self.response)
 
+                                        print("{}Forwarded Second best child message from {} to {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
+
+
+                                        server.myRIOs[self.COLOR]["second_best_genes_received"] = True
+
+                                        print("{}Set 2nd best genes recvd".format(print_tabs(self.thread_index)))
+
+                                        while not server.myRIOs[self.PARTNER]["second_best_genes_received"]:
+                                                pass
+
                                         server.myRIOs[self.COLOR]["second_best_genes_ready"] = False
 
+                                        print("{}Set 2nd best genes ready to false".format(print_tabs(self.thread_index)))
+
+                        # ---------- ---------- ---------- ----------
 
 
 	def finish(self):
@@ -434,7 +513,7 @@ if __name__ == "__main__":
 		sys.exit(2)
 
     # Set server hostname to be local and port to 8888
-    HOST, PORT = '', 8888 # list on port 8080 for all available interfaces
+    HOST, PORT = '', 8080 # list on port 8080 for all available interfaces
 
     # Create the server, binding to all interfaces on port 8080
     server = ThreadedTCPServer((HOST, PORT), MyRIOConnectionHandler)
@@ -456,7 +535,8 @@ if __name__ == "__main__":
 		ip = config.split(':')[1].strip()
 		server.myRIOs[color] = {}
 		server.myRIOs[color]["ip"] = ip
-		count +=1 
+                if color != "webcam":
+		      count +=1 
 
     configuration.close()
 
@@ -475,6 +555,12 @@ if __name__ == "__main__":
 
     # This is the final image
     server.RESULT = None
+
+    # Lock to be used by the threads to prevent a deadlock
+    server.lock = threading.Lock()
+    server.lock2 = threading.Lock()
+
+    server.colliding_bots = []
 
     # Print target image size in bytes
     print('Target image is size: {}'.format(len(server.target_image)))

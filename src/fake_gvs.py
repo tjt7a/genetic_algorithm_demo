@@ -61,7 +61,7 @@ def update_grid():
 def iterate():
 
     global locations
-    
+
     for color in locations:
         location_x = locations[color][0]
         location_y = locations[color][1]
@@ -120,36 +120,3 @@ for i in range(100):
     show_grid()
     time.sleep(1)
     iterate()
-
-
-
-'''
-while (True):
-    try:
-
-        if user_in.find('<random>'):
-            #print(generate_random_genes())
-            user_in = user_in.replace('<random>', generate_random_genes())
-
-
-        sock.sendall(user_in)
-        
-        # Receive data from the server and shut down
-        received = bytearray(sock.recv(7168).split(':')[1])
-        
-        # display received data
-        print "Sent:     {}".format(user_in)
-        print "Received: {}".format(str(received))
-
-        #img = Image.
-    
-        
-        user_in = raw_input('> ')
-    
-    except:
-        sock.close()
-        raise
-        break
-
-sock.close()
-'''
