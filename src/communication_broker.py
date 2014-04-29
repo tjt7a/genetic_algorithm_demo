@@ -22,7 +22,7 @@ DEBUG = False # When enabled, we DEBUG with a single robot, and assume either OB
 ROBOT_COLLISION = True # True for Robot collision; False for Obstacle collision
 SINGLE_BOT = False # Used if debugging a single robot := don't wait to start, don't send robot collision messages
 
-DISTANCE_THRESHOLD = 100 # Threshold distance for mating robots
+DISTANCE_THRESHOLD = 150 # Threshold distance for mating robots
 
 # -------------------- -------------- --------------------
 
@@ -338,9 +338,12 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
 
                                         self.PARTNER = None
 
-                                        time.sleep(0.5) # Wait for a quarter second, and see who's available
+                                        time.sleep(1) # Wait for a whole second, and see who's available
 
                                         # We've been claimed!
+
+                                        server.lock.acquire()
+
                                         if server.myRIOs[self.COLOR]["partner"] != None:
                                                 self.PARTNER = server.myRIOs[self.COLOR]["partner"]
                                                 print("{}Robot {} partnered with Robot {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
@@ -349,14 +352,14 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
                                                 for color in potential_partners:
                                                         # If someone set my partner to themselves... ive been claimed OR this dude's colliding
                                                         if server.myRIOs[color]["colliding"]:
-                                                                server.lock.acquire()
                                                                 server.myRIOs[color]["colliding"] = False # Set that robot to not be colliding; we have claimed it as our partner
                                                                 server.myRIOs[self.COLOR]["colliding"] = False # both of us are not available anymore
                                                                 server.myRIOs[color]["partner"] = self.COLOR
                                                                 self.PARTNER = color
-                                                                server.lock.release()
                                                                 print("{}Robot {} partnered with Robot {}".format(print_tabs(self.thread_index), self.COLOR, self.PARTNER))
                                                                 break # We're partnered!!!!
+
+                                        server.lock.release()
 
                                         if self.PARTNER == None:
                                                 #print("{}Robot {} has no partner".format(print_tabs(self.thread_index), self.COLOR))

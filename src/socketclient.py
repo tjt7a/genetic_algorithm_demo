@@ -16,7 +16,6 @@ def generate_random_genes():
 
 
 HOST, PORT = "localhost", 8888
-#data = " ".join(sys.argv[1:])
 
 # Create a socket (SOCK_STREAM means a TCP socket)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,7 +35,6 @@ while (user_in  != 'q'):
     try:
 
         if user_in.find('<random>'):
-            #print(generate_random_genes())
             user_in = user_in.replace('<random>', generate_random_genes())
 
 
@@ -45,28 +43,10 @@ while (user_in  != 'q'):
         # Receive data from the server and shut down
         received = bytearray(sock.recv(7168).split(':')[1])
 
-
-#        int_list = []
-
-#       for b in received:
-#           int_list.append(int(b))
-#       print int_list
-
-#        tuple_list = zip(int_list[0::3],int_list[1::3],int_list[2::3])
-
-#        img = Image.new('RGB', (32,16))
-#        img.putdata(tuple_list)
-#        img.show()
-
-#        print(len(received))
-        
         # display received data
         print "Sent:     {}".format(user_in)
         print "Received: {}".format(str(received))
 
-        #img = Image.
-    
-        
         user_in = raw_input('> ')
     
     except:
