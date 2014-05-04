@@ -22,7 +22,7 @@ DEBUG = False # When enabled, we DEBUG with a single robot, and assume either OB
 ROBOT_COLLISION = True # True for Robot collision; False for Obstacle collision
 SINGLE_BOT = False # Used if debugging a single robot := don't wait to start, don't send robot collision messages
 
-DISTANCE_THRESHOLD = 150 # Threshold distance for mating robots
+DISTANCE_THRESHOLD = 150 # Threshold distance for mating robots # THIS MUST BE CALIBRATED
 
 # -------------------- -------------- --------------------
 
@@ -125,12 +125,6 @@ def distance_between(color_1, color_2):
 
         return distance
 
-        # Determine if the robots are close enough
-        #if distance < DISTANCE_THRESHOLD:
-        #        return True
-        #else:
-        #        return False
-
 #
 # -------------------- -------------- --------------------
 #
@@ -164,17 +158,19 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
         	self.STATE = "INIT" # State of the robot thread (always start in INIT)
             	self.COLOR = None
 
-            	# Figure out what color myRIO is connecting
+            	# Figure out what color myRIO is connecting; set the self.COLOR variable to that color
             	for color in server.myRIOs:
                 	if self.client_address[0] == server.myRIOs[color]["ip"]:
                     		self.COLOR = color
 				print("{}Thread's Color Set to: {}".format(print_tabs(self.thread_index), self.COLOR))
                                 break
 
-            	if self.COLOR == None and self.COLOR != "webcam":
+                # If We don't know what color this robot is.... we have problems
+            	if self.COLOR == None:
                 	print("{}**ILLEGAL ROBOT CONNECTING! UNKNOWN COLOR**".format(print_tabs(self.thread_index)))
                         exit()
 
+                # We don't need to set this stuff for webcam; these configurations are for robots!
                 else:
                         if self.COLOR != "webcam":
                                 # Set data dictionary to initial values, and print the contents
@@ -205,7 +201,6 @@ class MyRIOConnectionHandler(SocketServer.BaseRequestHandler):
         	while True:
 
                         # ---------- Special Conditions ----------
-
 
                         # If all data hasn't arrived yet, fill self.data with next TCP packet (TCP hack)
             		if self.STILL_RECEIVING == True:
